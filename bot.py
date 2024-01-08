@@ -404,7 +404,7 @@ async def start_message(message: types.Message):
 @dp.message_handler(commands=['my_id'])
 async def my_id_command(message: types.Message):
     # Отправка ID чата
-    await message.reply(f"ID этой группы: {message.chat.id}")
+    await message.reply(f"ID: {message.chat.id}")
 
 
 @dp.message_handler(lambda message: message.text.lower() == 'заказ автозапчастей', state='*')
