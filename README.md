@@ -21,8 +21,8 @@ pip install -r requirements.txt
 ```
 In the "config" folder, create a .env file and write there:
 ```python 
-TOKEN="token_your_telegam_bot"
-ADMIN_ID="telegram_id manager(or admin), who will receive messages with orders"
+BOT_TOKEN="token_your_telegam_bot"
+ADMIN_IDS="telegram_id manager(or admin), who will receive messages with orders"
 ```
 Start bot this command:
 ```bash 
