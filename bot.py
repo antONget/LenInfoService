@@ -785,8 +785,5 @@ async def moto_process_order(message: types.Message, state: FSMContext):
         await state.finish()
 
 if __name__ == '__main__':
-    user = get_telegram_user(user_id=894294239, bot_token='6689173506:AAFjbmjGd124jwLQyS_XA1VVtCPLvhhgCfE')
-    if 'result' in user:
-        print(f'User with ID exists.')
     print("Bot started")
-    # executor.start_polling(dp, skip_updates=True)
+    executor.start_polling(dp, skip_updates=True)
