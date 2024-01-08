@@ -89,8 +89,9 @@ def get_telegram_user(user_id, bot_token):
 @dp.message_handler(lambda message: message.text == 'Добавить админа', state="*")
 async def add_id_handler(message: types.Message):
     # Запрос пользователя на ввод Telegram ID
-    await message.answer("Введите Telegram ID:")
-    await AddForm.add.set()
+    if str(message.chat.id) == str(Tokens.admin_id):
+        await message.answer("Введите Telegram ID:")
+        await AddForm.add.set()
 
 
 @dp.message_handler(state=AddForm.add)
