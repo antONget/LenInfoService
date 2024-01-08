@@ -17,7 +17,7 @@ from keyboards.keyboard_user import menu_button, get_base_keyboard, btn_from_vin
 from keyboards.keyboard_admin import adminBtn, adminBtn_plus, confirm_keyboard
 storage = MemoryStorage()
 
-dotenv = dotenv.load_dotenv("config/.env.example")
+dotenv = dotenv.load_dotenv("config/.env")
 
 
 class Tokens:
@@ -82,6 +82,7 @@ def get_telegram_user(user_id, bot_token):
     url = f'https://api.telegram.org/bot{bot_token}/getChat'
     data = {'chat_id': user_id}
     response = requests.post(url, data=data)
+    print()
     return response.json()
 
 
@@ -784,5 +785,8 @@ async def moto_process_order(message: types.Message, state: FSMContext):
         await state.finish()
 
 if __name__ == '__main__':
+    user = get_telegram_user(user_id=894294239, bot_token='6689173506:AAFjbmjGd124jwLQyS_XA1VVtCPLvhhgCfE')
+    if 'result' in user:
+        print(f'User with ID exists.')
     print("Bot started")
-    executor.start_polling(dp, skip_updates=True)
+    # executor.start_polling(dp, skip_updates=True)
