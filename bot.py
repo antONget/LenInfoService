@@ -17,7 +17,7 @@ from keyboards.keyboard_user import menu_button, get_base_keyboard, btn_from_vin
 from keyboards.keyboard_admin import adminBtn, adminBtn_plus, confirm_keyboard
 storage = MemoryStorage()
 
-dotenv = dotenv.load_dotenv("config/.env")
+dotenv = dotenv.load_dotenv("config/.env.example")
 
 
 class Tokens:
