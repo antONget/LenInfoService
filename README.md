@@ -1,5 +1,8 @@
 # Bot
-
+## Разархивируйте проект в выбранную вами папку на сервере или склонируйте репозитарий из github выполнив команду
+```bash
+git clone https://github.com/antONget/LenInfoService.git
+```
 ## Для разворачивания телеграм-бота последовательно выполните команды:
 ### Создайте виртуальное окружения для проекта
 ```bash
@@ -18,7 +21,8 @@ venv/Scripts/activate
 ```bash 
 pip install -r requirements.txt
 ```
-### Внесите изменения в файл .env в папке config
+### Необезательный пункт
+Внесите изменения в файл .env в папке config (если требуется изменить токен бота или id канала)
 ```python 
 BOT_TOKEN="token_your_telegam_bot"
 ADMIN_IDS="telegram_id manager(or admin), who will receive messages with orders"
