@@ -17,7 +17,7 @@ from keyboards.keyboard_user import menu_button, get_base_keyboard, btn_from_vin
 from keyboards.keyboard_admin import adminBtn, adminBtn_plus, confirm_keyboard
 storage = MemoryStorage()
 
-dotenv = dotenv.load_dotenv("config/.env")
+dotenv = dotenv.load_dotenv("config/.env.example")
 
 
 class Tokens:
@@ -86,6 +86,17 @@ def get_telegram_user(user_id, bot_token):
     return response.json()
 
 
+def check_command_for_admins(user_id):
+    conn = sqlite3.connect('mag.db')
+    cursor = conn.cursor()
+    # Выполнение запроса для получения всех telegram_id из таблицы admins
+    cursor.execute('SELECT telegram_id FROM admins')
+    # Извлечение результатов запроса и сохранение их в список
+    telegram_ids = [row[0] for row in cursor.fetchall()]
+    # Закрытие соединения
+    conn.close()
+    return user_id in telegram_ids or str(user_id) == Tokens.admin_id
+
 # handlers - admin
 @dp.message_handler(lambda message: message.text == 'Добавить админа', state="*")
 async def add_id_handler(message: types.Message):
@@ -125,7 +136,8 @@ async def add_admins(message: types.Message, state: FSMContext):
         await AddForm.add.set()
     
 
-@dp.message_handler(lambda message: message.text == 'Удалить все акции и скидки', state="*")
+@dp.message_handler(lambda message: message.text == 'Удалить все акции и скидки' and
+                    check_command_for_admins(message.from_user.id), state="*")
 async def cmd_delete_all_promotions(message: types.Message):
     # Выполняем SQL-запрос для удаления всех записей из таблицы sales
     conn = sqlite3.connect('mag.db', check_same_thread=False)
@@ -142,7 +154,8 @@ async def cmd_delete_all_promotions(message: types.Message):
         conn.close()
 
 
-@dp.message_handler(lambda message: message.text == 'Добавить', state="*")
+@dp.message_handler(lambda message: message.text == 'Добавить' and
+                    check_command_for_admins(message.from_user.id), state="*")
 async def cmd_add_promotion(message: types.Message):
     await message.answer("Отправьте фотографию акции:")
     await AdminForm.photo.set()
@@ -238,7 +251,8 @@ async def process_short_description(message: types.Message, state: FSMContext):
     await state.finish()
 
 
-@dp.message_handler(lambda message: message.text.lower() == 'удалить', state="*")
+@dp.message_handler(lambda message: message.text.lower() == 'удалить' and
+                    check_command_for_admins(message.from_user.id), state="*")
 async def cmd_delete_promotion(message: types.Message, state: FSMContext):
     try:
         conn = sqlite3.connect('mag.db', check_same_thread=False)
@@ -390,14 +404,14 @@ async def start_message(message: types.Message):
     conn.commit()
     conn.close()
     await bot.send_message(message.chat.id, "*Наш БОТ, может вам предложить:*\n\
-        Подбор запчастей не выходя из дома, на многие виды техники и инструмента.\n\
-        Оригинальные и бюджетные аналоги.\n\
-        Доступные цены и гарантия качества.\n\
-        Удобный способ оплаты.\n\
-        *А так же при заказе запчастей через БОТ, бесплатная доставка в пределах города Волхов!!!*\n\
-        1. Для подбора запчастей выберите соответствующий раздел\n\
-        2. Заполните форму заявки\n\
-        3. Ожидайте, наши менеджеры с Вами свяжутся", parse_mode="markdown")
+Подбор запчастей ⚙️ не выходя из дома, на многие виды техники и инструмента 🛠.\n\
+Оригинальные и бюджетные аналоги.\n\
+Доступные цены и гарантия качества.\n\
+Удобный способ оплаты.\n\
+*А так же при заказе запчастей через БОТ, бесплатная доставка в пределах города Волхов!!!*\n\
+1. Для подбора запчастей выберите соответствующий раздел\n\
+2. Заполните форму заявки\n\
+3. Ожидайте, наши менеджеры с Вами свяжутся", parse_mode="markdown")
     await menu(message)
 
 
@@ -407,19 +421,19 @@ async def my_id_command(message: types.Message):
     await message.reply(f"ID: {message.chat.id}")
 
 
-@dp.message_handler(lambda message: message.text.lower() == 'заказ автозапчастей', state='*')
+@dp.message_handler(lambda message: message.text.lower() == '🚘 заказ автозапчастей', state='*')
 async def process_order_parts(message: types.Message):
     await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
     await OrderForm.name.set()
 
 
-@dp.message_handler(lambda message: message.text.lower() == 'заказ запчастей мото, вело, инструменты', state='*')
+@dp.message_handler(lambda message: message.text.lower() == 'заказ з/ч мото/вело/инструменты 🛠', state='*')
 async def moto_process_order_parts(message: types.Message):
     await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
     await SecondForm.name.set()
 
 
-@dp.message_handler(lambda message: message.text.lower() == 'акции', state='*')
+@dp.message_handler(lambda message: message.text.lower() == 'акции и скидки 🎁🔥', state='*')
 async def process_promotions(callback_query: types.CallbackQuery):
     # Подключение к базе данных SQLite
     conn = sqlite3.connect('mag.db')
@@ -456,7 +470,7 @@ async def process_promotions(callback_query: types.CallbackQuery):
         conn.close()
 
 
-@dp.message_handler(lambda message: message.text.lower() == 'контакты', state='*')
+@dp.message_handler(lambda message: message.text.lower() == '📞 контакты', state='*')
 async def process_contacts(message: types.Message):
     conn = sqlite3.connect('mag.db')
     cursor = conn.cursor()
@@ -473,7 +487,7 @@ async def process_contacts(message: types.Message):
                          photo=photo_data,
                          caption="*Наши контакты:*\n`ЛО, г.Волхов, Железнодорожный переулок 8`\n*Телефон:* `+7 952 224-33-22` (WhatsApp, Telegram)\n\
 *Режим работы:*\n_Понедельник - пятница_ с 9.00 до 19.00\n_Суббота_ - с 9.00 до 18.00\n\
-_Воскресенье_ - выходной\nwww.47moto.ru - Интернет магазин мото/вело/инструмент",
+_Воскресенье_ - выходной\nwww.47moto.ru - Интернет магазин запчастей мото/вело/инструмент",
                          reply_markup=menu_button(),
                          parse_mode="markdown")
 
@@ -496,7 +510,7 @@ async def process_name(message: types.Message, state: FSMContext):
         if validate_russian_name(message.text):
             async with state.proxy() as data:
                 data['name'] = message.text
-            await message.answer(text="Напишите ваш номер телефона, на котором установлен телеграм!",
+            await message.answer(text="Напишите ваш номер телефона 📞 для связи!",
                                  reply_markup=get_base_keyboard())
             await OrderForm.phone.set()
         else:
@@ -524,7 +538,7 @@ async def process_phone(message: types.Message, state: FSMContext):
         if validate_russian_phone_number(message.text):
             async with state.proxy() as data:
                 data['phone'] = message.text
-            await message.answer("У Вас есть VIN код авто?", reply_markup=btn_from_vin())
+            await message.answer("У Вас есть VIN код авто 🚗?", reply_markup=btn_from_vin())
             await OrderForm.vin_check.set()
         else:
             await message.answer("Неверный формат номера! Попробуйте еще раз!")
@@ -534,7 +548,7 @@ async def process_phone(message: types.Message, state: FSMContext):
 @dp.message_handler(state=OrderForm.vin_check)
 async def process_vin(message: types.Message, state: FSMContext):
     if message.text.lower() == 'да':
-        await message.answer("Введите VIN код Вашего авто:")
+        await message.answer("Введите VIN код Вашего авто 🚗:")
         await OrderForm.vin_code.set()
     elif message.text == "/start":
         await state.finish()
@@ -550,7 +564,7 @@ async def process_vin(message: types.Message, state: FSMContext):
                              reply_markup=get_base_keyboard())
         await OrderForm.car_make.set()
     elif message.text.lower() == 'назад':
-        await bot.send_message(message.chat.id, 'Напишите ваш номер телефона, на котором установлен телеграм!',
+        await bot.send_message(message.chat.id, 'Напишите ваш номер телефона 📞 для связи!',
                                reply_markup=get_base_keyboard())
         await OrderForm.previous()
 
@@ -558,7 +572,7 @@ async def process_vin(message: types.Message, state: FSMContext):
 @dp.message_handler(state=OrderForm.vin_code)
 async def process_vin_code(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
-        await bot.send_message(message.chat.id, 'У вас есть VIN код?', reply_markup=get_base_keyboard())
+        await bot.send_message(message.chat.id, 'У вас есть VIN код 🚗?', reply_markup=get_base_keyboard())
         await OrderForm.previous()
     elif message.text == "/start":
         await state.finish()
@@ -581,7 +595,7 @@ async def process_vin_code(message: types.Message, state: FSMContext):
 @dp.message_handler(state=OrderForm.car_make)
 async def process_vin_code(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
-        await bot.send_message(message.chat.id, 'У Вас есть VIN код авто?', reply_markup=btn_from_vin())
+        await bot.send_message(message.chat.id, 'У Вас есть VIN код авто 🚗?', reply_markup=btn_from_vin())
         await OrderForm.vin_check.set()
     elif message.text == "/start":
         await state.finish()
@@ -608,7 +622,7 @@ async def process_parts_list(message: types.Message, state: FSMContext):
         previous_state = user_data.get('previous_state')
         if previous_state == "OrderForm:vin_code":
             await bot.send_message(chat_id=message.chat.id,
-                                   text='Введите VIN код Вашего авто:',
+                                   text='Введите VIN код Вашего авто 🚗:',
                                    reply_markup=get_base_keyboard())
             await OrderForm.vin_code.set()
         elif previous_state == "OrderForm:car_make":
@@ -667,7 +681,7 @@ async def moto_process_name(message: types.Message, state: FSMContext):
         if validate_russian_name(message.text):
             async with state.proxy() as data:
                 data['name'] = message.text
-            await message.answer(text="Напишите ваш номер телефона, на котором установлен телеграм!",
+            await message.answer(text="Напишите ваш номер телефона 📞 для связи!",
                                  reply_markup=get_base_keyboard())
             await SecondForm.phone.set()
         else:
@@ -695,7 +709,7 @@ async def moto_process_phone(message: types.Message, state: FSMContext):
         if validate_russian_phone_number(message.text):
             async with state.proxy() as data:
                 data['phone'] = message.text
-            await message.answer("Напишите вид Вашей техники или инструмента", reply_markup=get_base_keyboard())
+            await message.answer("Напишите вид Вашей техники или инструмента 🛠", reply_markup=get_base_keyboard())
             await SecondForm.view.set()
         else:
             await message.answer("Неверный формат номера! Попробуйте еще раз!")
@@ -706,7 +720,7 @@ async def moto_process_phone(message: types.Message, state: FSMContext):
 async def moto_process_marka(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
         await bot.send_message(chat_id=message.chat.id,
-                               text='Напишите ваш номер телефона, на котором установлен телеграм!',
+                               text='Напишите ваш номер телефона 📞 для связи!',
                                reply_markup=get_base_keyboard())
         await SecondForm.previous()
     elif message.text == "/start":
@@ -729,7 +743,7 @@ async def moto_process_marka(message: types.Message, state: FSMContext):
 async def moto_process_model(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
         await bot.send_message(chat_id=message.chat.id,
-                               text='Напишите вид Вашей техники или инструмента',
+                               text='Напишите вид Вашей техники или инструмента 🛠',
                                reply_markup=get_base_keyboard())
         await SecondForm.previous()
     elif message.text == "/start":
@@ -744,7 +758,7 @@ async def moto_process_model(message: types.Message, state: FSMContext):
     else:
         async with state.proxy() as data:
             data['model'] = message.text
-        await message.answer("Напишите список необходимых запчастей", reply_markup=get_base_keyboard())
+        await message.answer("Напишите список необходимых запчастей ⚙️", reply_markup=get_base_keyboard())
         await SecondForm.order.set()
 
 
@@ -773,7 +787,7 @@ async def moto_process_order(message: types.Message, state: FSMContext):
         view = user_data.get('view')
         model = user_data.get('model')
         order = user_data.get('order')
-        order_summary = (f"*Заказ автозапчастей:*\n"
+        order_summary = (f"*Заказ автозапчастей ⚙️:*\n"
                          f"*Имя:* {name}\n"
                          f"*Телефон:* `{phone}`\n"
                          f"*Вид техники или инструмента:* {view}\n"

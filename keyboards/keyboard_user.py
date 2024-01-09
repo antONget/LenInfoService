@@ -3,8 +3,8 @@ from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButt
 
 def menu_button():
     menu_btn = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True, row_width=2)
-    menu_btn.add(KeyboardButton("Заказ автозапчастей"), KeyboardButton("Заказ запчастей мото, вело, инструменты"))
-    menu_btn.add(KeyboardButton("Контакты"), KeyboardButton("Акции"))
+    menu_btn.add(KeyboardButton("🚘 Заказ автозапчастей"), KeyboardButton("Заказ з/ч мото/вело/инструменты 🛠"))
+    menu_btn.add(KeyboardButton("📞 Контакты"), KeyboardButton("Акции и скидки 🎁🔥"))
     return menu_btn
 
 
@@ -16,7 +16,7 @@ def get_base_keyboard():
 
 def btn_from_vin():
     keybtn = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    keybtn.add(KeyboardButton('Да'))
-    keybtn.add(KeyboardButton('Нет'))
+    keybtn.add(KeyboardButton('Да 👍'))
+    keybtn.add(KeyboardButton('Нет 👎'))
     keybtn.add(KeyboardButton('Назад'))
     return keybtn
