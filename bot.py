@@ -547,7 +547,7 @@ async def process_phone(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=OrderForm.vin_check)
 async def process_vin(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'да':
+    if message.text.lower() == 'да 👍':
         await message.answer("Введите VIN код Вашего авто 🚗:")
         await OrderForm.vin_code.set()
     elif message.text == "/start":
@@ -559,7 +559,7 @@ async def process_vin(message: types.Message, state: FSMContext):
     elif message.text == "/admin":
         await state.finish(message)
         return await admin_menu()
-    elif message.text.lower() == 'нет':
+    elif message.text.lower() == 'нет 👎':
         await message.answer("Напишите марку и модель Вашего авто, год выпуска, объем двигателя:",
                              reply_markup=get_base_keyboard())
         await OrderForm.car_make.set()
