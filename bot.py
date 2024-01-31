@@ -13,8 +13,10 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 import requests
 import re
-from keyboards.keyboard_user import menu_button, get_base_keyboard, btn_from_vin
+from keyboards.keyboard_user import menu_button, get_base_keyboard, btn_from_vin, keyboard_reply, keyboard_reply_tools
 from keyboards.keyboard_admin import adminBtn, adminBtn_plus, confirm_keyboard
+from module.data_base import table_auto, table_tools, add_id_auto, add_id_tool, update_phone, select_row,\
+                                create_table_admins, create_table_sales, update_table_field
 storage = MemoryStorage()
 
 dotenv = dotenv.load_dotenv("config/.env")
@@ -86,6 +88,7 @@ def get_telegram_user(user_id, bot_token):
     return response.json()
 
 
+# БД-АДМИНИСТРАТОРЫ - проверка на админа
 def check_command_for_admins(user_id):
     conn = sqlite3.connect('mag.db')
     cursor = conn.cursor()
@@ -97,9 +100,17 @@ def check_command_for_admins(user_id):
     conn.close()
     return user_id in telegram_ids or str(user_id) == Tokens.admin_id
 
+
 # handlers - admin
 @dp.message_handler(lambda message: message.text == 'Добавить админа', state="*")
 async def add_id_handler(message: types.Message):
+    """
+    Действие по нажатию кнопки "Добавить админа", создается таблица если ещё не создано
+    далее идет проверка, что пользователь является суперадминоминистратором
+    :param message:
+    :return:
+    """
+    # create_table_admins()
     # Запрос пользователя на ввод Telegram ID
     if str(message.chat.id) == str(Tokens.admin_id):
         await message.answer("Введите Telegram ID:")
@@ -108,6 +119,12 @@ async def add_id_handler(message: types.Message):
 
 @dp.message_handler(state=AddForm.add)
 async def add_admins(message: types.Message, state: FSMContext):
+    """
+    Функция принимает значение id пользователя для назначения его администратором
+    :param message:
+    :param state:
+    :return:
+    """
     if message.text == "/start":
         await state.finish()
         return await start_message(message)
@@ -129,13 +146,14 @@ async def add_admins(message: types.Message, state: FSMContext):
         conn.close()
 
         # Отправка сообщения об успешном добавлении
-        await message.answer(f"Telegram ID {telegram_id} успешно добавлен в базу данных!")
+        await message.answer(f"Пользователь с ID {telegram_id} назначен администратором!")
         await state.finish()
     else:
         await message.answer(f"Telegram ID {telegram_id} не существует! Попробуйте еще раз!")
         await AddForm.add.set()
     
 
+# АКЦИИ И СКИДКИ
 @dp.message_handler(lambda message: message.text == 'Удалить все акции и скидки' and
                     check_command_for_admins(message.from_user.id), state="*")
 async def cmd_delete_all_promotions(message: types.Message):
@@ -154,6 +172,7 @@ async def cmd_delete_all_promotions(message: types.Message):
         conn.close()
 
 
+# АКЦИИ И СКИДКИ
 @dp.message_handler(lambda message: message.text == 'Добавить' and
                     check_command_for_admins(message.from_user.id), state="*")
 async def cmd_add_promotion(message: types.Message):
@@ -161,6 +180,7 @@ async def cmd_add_promotion(message: types.Message):
     await AdminForm.photo.set()
 
 
+# АКЦИИ И СКИДКИ - добавление фото акции
 @dp.message_handler(state=AdminForm.photo, content_types=types.ContentType.PHOTO)
 async def process_image(message: types.Message, state: FSMContext):
     # Сохраняем фотографию в базу данных
@@ -196,6 +216,7 @@ async def process_image(message: types.Message, state: FSMContext):
         conn.close()
 
 
+# АКЦИИ И СКИДКИ - добавление описания акции
 @dp.message_handler(state=AdminForm.desc)
 async def process_description(message: types.Message, state: FSMContext):
     # Сохраняем описание в базу данных
@@ -223,6 +244,7 @@ async def process_description(message: types.Message, state: FSMContext):
         await message.answer("Произошла ошибка при добавлении описания в базу данных.")
 
 
+# АКЦИИ И СКИДКИ - добавление короткого описания акции
 @dp.message_handler(state=AdminForm.shdesc)
 async def process_short_description(message: types.Message, state: FSMContext):
     # Сохраняем короткое описание в базу данных
@@ -251,6 +273,7 @@ async def process_short_description(message: types.Message, state: FSMContext):
     await state.finish()
 
 
+# АКЦИИ И СКИДКИ - выбор акции для удаления
 @dp.message_handler(lambda message: message.text.lower() == 'удалить' and
                     check_command_for_admins(message.from_user.id), state="*")
 async def cmd_delete_promotion(message: types.Message, state: FSMContext):
@@ -283,6 +306,7 @@ async def cmd_delete_promotion(message: types.Message, state: FSMContext):
     await state.finish()
 
 
+# АКЦИИ И СКИДКИ - подтверждение удаление акции
 @dp.callback_query_handler(lambda c: c.data.startswith('delete_promo:'))
 async def process_delete_callback(callback_query: types.CallbackQuery):
     try:
@@ -311,6 +335,7 @@ async def process_delete_callback(callback_query: types.CallbackQuery):
         conn.close()
 
 
+# АКЦИИ И СКИДКИ - отмена удаления акции
 @dp.callback_query_handler(lambda c: c.data == 'cancel_delete')
 async def process_cancel_delete_callback(callback_query: types.CallbackQuery):
     await bot.send_message(callback_query.from_user.id, "Удаление отменено.", reply_markup=adminBtn())
@@ -327,7 +352,7 @@ async def process_cancel_delete_callback(callback_query: types.CallbackQuery):
     # Завершаем обработку callback
     await bot.answer_callback_query(callback_query.id)
 
-
+# АКЦИИ И СКИДКИ - удаление выбранной акции
 @dp.callback_query_handler(lambda c: c.data.startswith('confirm_delete:'))
 async def process_confirm_delete_callback(callback_query: types.CallbackQuery):
     try:
@@ -393,6 +418,7 @@ async def menu(message: types.Message):
     await message.answer("Выберите опцию:", reply_markup=menu_button())
 
 
+# handler - start - commands
 @dp.message_handler(commands=['start'])
 async def start_message(message: types.Message):
     user_id = message.from_user.id
@@ -418,24 +444,84 @@ async def start_message(message: types.Message):
     await menu(message)
 
 
+# handler - my_id - commands
 @dp.message_handler(commands=['my_id'])
 async def my_id_command(message: types.Message):
     # Отправка ID чата
     await message.reply(f"ID: {message.chat.id}")
 
 
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ
 @dp.message_handler(lambda message: message.text.lower() == '🚘 заказ автозапчастей', state='*')
 async def process_order_parts(message: types.Message):
-    await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
-    await OrderForm.name.set()
+    """
+    Функция обробатывает нажатие кнопки ЗАКАЗ АВТОЗАПЧАСТЕЙ
+    1. Создает таблицу в БД для записи заказа
+    2. Выводит сообщение для пользователя
+    :param message:
+    :return:
+    """
+    # создаем таблицу если еще не создана
+    table_auto()
+    # если пользователь уже делал заказ, то предлагаем ему подтвердить ему ранее введенные данные
+    try:
+        result = select_row(message=message, table='order_auto')
+        if result:
+
+            print(result)
+            text = f"Здравствуйте, {result[2]}.\n" \
+                   f"Рады видеть вас снова! Ранее вы делали заказ:\n" \
+                   f"Телефон: {result[3]}\n" \
+                   f"Vin: {result[4]}\n" \
+                   f"Марка и модель авто: {result[5]}\n" \
+                   f"Все верно?"
+            # callback - <done> <change>
+            await message.answer(text=text,
+                                 reply_markup=keyboard_reply())
+        else:
+            # новая строка
+            add_id_auto(message)
+            # знакомимся
+            await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
+            await OrderForm.name.set()
+    except:
+        # новая строка
+        add_id_auto(message)
+        # знакомимся
+        await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
+        await OrderForm.name.set()
 
 
+# ИНСТРУМЕНТЫ
 @dp.message_handler(lambda message: message.text.lower() == 'заказ з/ч мото/вело/инструменты 🛠', state='*')
 async def moto_process_order_parts(message: types.Message):
-    await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
-    await SecondForm.name.set()
+    table_tools()
+    # знакомимся
+    # если пользователь уже делал заказ, то предлагаем ему подтвердить ему ранее введенные данные
+    try:
+        result = select_row(message=message, table='order_tools')
+        if result:
+
+            text = f"Здравствуйте, {result[2]}.\n" \
+                   f"Рады видеть вас снова! Ранее вы делали заказ:\n" \
+                   f"Телефон: {result[3]}\n" \
+                   f"Вид техники: {result[4]}\n" \
+                   f"Марка и модель: {result[5]}\n" \
+                   f"Все верно?"
+            # callback - <done> <change>
+            await message.answer(text=text,
+                                 reply_markup=keyboard_reply_tools())
+        else:
+            add_id_tool(message)
+            await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
+            await SecondForm.name.set()
+    except:
+        add_id_tool(message)
+        await message.answer("Давайте познакомимся!\nКак вас зовут?", reply_markup=get_base_keyboard())
+        await SecondForm.name.set()
 
 
+# АКЦИИ И СКИДКИ
 @dp.message_handler(lambda message: message.text.lower() == 'акции и скидки 🎁🔥', state='*')
 async def process_promotions(callback_query: types.CallbackQuery):
     # Подключение к базе данных SQLite
@@ -473,6 +559,7 @@ async def process_promotions(callback_query: types.CallbackQuery):
         conn.close()
 
 
+# КОНТАКТЫ
 @dp.message_handler(lambda message: message.text.lower() == '📞 контакты', state='*')
 async def process_contacts(message: types.Message):
     conn = sqlite3.connect('mag.db')
@@ -495,6 +582,7 @@ _Воскресенье_ - выходной\nwww.47moto.ru - Интернет м
                          parse_mode="markdown")
 
 
+# # ЗАКАЗ АВТОЗАПЧАСТЕЙ - получаем имя пользователя
 @dp.message_handler(state=OrderForm.name)
 async def process_name(message: types.Message, state: FSMContext):
     if message.text == "/start":
@@ -513,6 +601,7 @@ async def process_name(message: types.Message, state: FSMContext):
         if validate_russian_name(message.text):
             async with state.proxy() as data:
                 data['name'] = message.text
+                update_table_field(message=message, table='order_auto', field='username', set_field=message.text)
             await message.answer(text="Напишите ваш номер телефона 📞 для связи!",
                                  reply_markup=get_base_keyboard())
             await OrderForm.phone.set()
@@ -521,6 +610,37 @@ async def process_name(message: types.Message, state: FSMContext):
             await OrderForm.name.set()
 
 
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ - ранее введенные данные пользователем следует изменить
+@dp.callback_query_handler(lambda c: c.data == 'change')
+async def process_cancel_delete_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    result = select_row(message=callback_query.message, table='order_auto')
+    add_id_auto(callback_query.message)
+    print(result)
+    update_table_field(message=callback_query.message, table='order_auto', field='username', set_field=result[2])
+    async with state.proxy() as data:
+        data['name'] = result[2]
+    await callback_query.message.answer(text="Напишите ваш номер телефона 📞 для связи!",
+                                        reply_markup=get_base_keyboard())
+    await OrderForm.phone.set()
+
+
+@dp.callback_query_handler(lambda c: c.data == 'done')
+async def process_cancel_delete_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    result = select_row(message=callback_query.message, table='order_auto')
+    add_id_auto(callback_query.message)
+    update_table_field(message=callback_query.message, table='order_auto', field='username', set_field=result[2])
+    update_table_field(message=callback_query.message, table='order_auto', field='phone', set_field=result[3])
+    update_table_field(message=callback_query.message, table='order_auto', field='vin', set_field=result[4])
+    update_table_field(message=callback_query.message, table='order_auto', field='car', set_field=result[5])
+    async with state.proxy() as data:
+        data['name'] = result[2]
+        data['phone'] = result[3]
+        data['vin'] = result[4]
+        data['car_make'] = result[5]
+    await callback_query.message.answer("Напишите список необходимых запчастей:", reply_markup=get_base_keyboard())
+    await OrderForm.parts_list.set()
+
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ - получаем номер телефона
 @dp.message_handler(state=OrderForm.phone)
 async def process_phone(message: types.Message, state: FSMContext):
     if message.text == "Назад":
@@ -541,6 +661,7 @@ async def process_phone(message: types.Message, state: FSMContext):
         if validate_russian_phone_number(message.text):
             async with state.proxy() as data:
                 data['phone'] = message.text
+                update_phone(message=message, table='order_auto')
             await message.answer("У Вас есть VIN код авто 🚗?", reply_markup=btn_from_vin())
             await OrderForm.vin_check.set()
         else:
@@ -548,6 +669,7 @@ async def process_phone(message: types.Message, state: FSMContext):
             await OrderForm.phone.set()
 
 
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ - есть ли вин
 @dp.message_handler(state=OrderForm.vin_check)
 async def process_vin(message: types.Message, state: FSMContext):
     if message.text.lower() == 'да 👍':
@@ -572,6 +694,7 @@ async def process_vin(message: types.Message, state: FSMContext):
         await OrderForm.previous()
 
 
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ - получаем вин автомобиля
 @dp.message_handler(state=OrderForm.vin_code)
 async def process_vin_code(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -591,10 +714,12 @@ async def process_vin_code(message: types.Message, state: FSMContext):
         await state.update_data(previous_state=current_state)
         async with state.proxy() as data:
             data['vin'] = message.text
+            update_table_field(message=message, table='order_auto', field='vin', set_field=message.text)
         await message.answer("Напишите список необходимых запчастей:", reply_markup=get_base_keyboard())
         await OrderForm.parts_list.set()
 
 
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ - получаем модель и марку автомобиля
 @dp.message_handler(state=OrderForm.car_make)
 async def process_vin_code(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -614,10 +739,12 @@ async def process_vin_code(message: types.Message, state: FSMContext):
         await state.update_data(previous_state=current_state)
         async with state.proxy() as data:
             data['car_make'] = message.text
+            update_table_field(message=message, table='order_auto', field='car', set_field=message.text)
         await message.answer("Напишите список необходимых запчастей:", reply_markup=get_base_keyboard())
         await OrderForm.parts_list.set()
 
 
+# ЗАКАЗ АВТОЗАПЧАСТЕЙ - получаем список запчастей
 @dp.message_handler(state=OrderForm.parts_list)
 async def process_parts_list(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -645,6 +772,7 @@ async def process_parts_list(message: types.Message, state: FSMContext):
     else:
         async with state.proxy() as data:
             data['parts_list'] = message.text
+            update_table_field(message=message, table='order_auto', field='list_tools', set_field=message.text.replace('\n', ' '))
         await message.answer(text="Спасибо! Вскоре наши менеджеры свяжутся с Вами, для уточнения деталей.",
                              reply_markup=menu_button())
         user_data = await state.get_data()
@@ -665,7 +793,7 @@ async def process_parts_list(message: types.Message, state: FSMContext):
         await state.finish()
 
 
-# Методы для 2 ветки
+# ИНСТРУМЕНТЫ - получаем имя пользователя
 @dp.message_handler(state=SecondForm.name)
 async def moto_process_name(message: types.Message, state: FSMContext):
     if message.text.lower() == 'назад':
@@ -684,6 +812,7 @@ async def moto_process_name(message: types.Message, state: FSMContext):
         if validate_russian_name(message.text):
             async with state.proxy() as data:
                 data['name'] = message.text
+                update_table_field(message=message, table='order_tools', field='username', set_field=message.text)
             await message.answer(text="Напишите ваш номер телефона 📞 для связи!",
                                  reply_markup=get_base_keyboard())
             await SecondForm.phone.set()
@@ -692,6 +821,39 @@ async def moto_process_name(message: types.Message, state: FSMContext):
             await SecondForm.name.set()
 
 
+# ИНСТРУМЕНТЫ - ранее введенные данные пользователем следует изменить
+@dp.callback_query_handler(lambda c: c.data == 'change_tools')
+async def process_change_tools(callback_query: types.CallbackQuery, state: FSMContext):
+    result = select_row(message=callback_query.message, table='order_tools')
+    add_id_tool(callback_query.message)
+    update_table_field(message=callback_query.message, table='order_tools', field='username', set_field=result[2])
+    async with state.proxy() as data:
+        data['name'] = result[2]
+    await callback_query.message.answer(text="Напишите ваш номер телефона 📞 для связи!",
+                                        reply_markup=get_base_keyboard())
+    await SecondForm.phone.set()
+
+
+@dp.callback_query_handler(lambda c: c.data == 'done_tools')
+async def process_cancel_delete_callback(callback_query: types.CallbackQuery, state: FSMContext):
+    result = select_row(message=callback_query.message, table='order_tools')
+    add_id_tool(callback_query.message)
+    print(result)
+    update_table_field(message=callback_query.message, table='order_tools', field='username', set_field=result[2])
+    update_table_field(message=callback_query.message, table='order_tools', field='phone', set_field=result[3])
+    update_table_field(message=callback_query.message, table='order_tools', field='type_tool', set_field=result[4])
+    update_table_field(message=callback_query.message, table='order_tools', field='model_tool', set_field=result[5])
+    async with state.proxy() as data:
+        data['name'] = result[2]
+        data['phone'] = result[3]
+        data['view'] = result[3]
+        data['model'] = result[5]
+    await callback_query.message.answer("Напишите список необходимых запчастей ⚙️", reply_markup=get_base_keyboard())
+    await SecondForm.order.set()
+
+
+
+# ИНСТРУМЕНТЫ - получаем телефон
 @dp.message_handler(state=SecondForm.phone)
 async def moto_process_phone(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -712,6 +874,7 @@ async def moto_process_phone(message: types.Message, state: FSMContext):
         if validate_russian_phone_number(message.text):
             async with state.proxy() as data:
                 data['phone'] = message.text
+                update_phone(message=message, table='order_tools')
             await message.answer("Напишите вид Вашей техники или инструмента 🛠", reply_markup=get_base_keyboard())
             await SecondForm.view.set()
         else:
@@ -719,6 +882,7 @@ async def moto_process_phone(message: types.Message, state: FSMContext):
             await SecondForm.phone.set()
 
 
+# ИНСТРУМЕНТЫ - получаем вид инструмента
 @dp.message_handler(state=SecondForm.view)
 async def moto_process_marka(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -738,10 +902,12 @@ async def moto_process_marka(message: types.Message, state: FSMContext):
     else:
         async with state.proxy() as data:
             data['view'] = message.text
+            update_table_field(message=message, table='order_tools', field='type_tool', set_field=message.text)
         await message.answer("Укажите модель или марку", reply_markup=get_base_keyboard())
         await SecondForm.model.set()
 
 
+# ИНСТРУМЕНТЫ - получаем модель инструмента
 @dp.message_handler(state=SecondForm.model)
 async def moto_process_model(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -761,10 +927,12 @@ async def moto_process_model(message: types.Message, state: FSMContext):
     else:
         async with state.proxy() as data:
             data['model'] = message.text
+            update_table_field(message=message, table='order_tools', field='model_tool', set_field=message.text)
         await message.answer("Напишите список необходимых запчастей ⚙️", reply_markup=get_base_keyboard())
         await SecondForm.order.set()
 
 
+# ИНСТРУМЕНТЫ - получаем завершение заказа
 @dp.message_handler(state=SecondForm.order)
 async def moto_process_order(message: types.Message, state: FSMContext):
     if message.text.lower() == "назад":
@@ -782,6 +950,7 @@ async def moto_process_order(message: types.Message, state: FSMContext):
     else:
         async with state.proxy() as data:
             data['order'] = message.text
+            update_table_field(message=message, table='order_tools', field='list_tools', set_field=message.text.replace('\n', ' '))
         await message.answer(text="Спасибо! Вскоре наши менеджеры свяжутся с Вами, для уточнения деталей.",
                              reply_markup=menu_button())
         user_data = await state.get_data()

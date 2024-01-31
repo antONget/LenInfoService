@@ -20,3 +20,33 @@ def btn_from_vin():
     keybtn.add(KeyboardButton('Нет 👎'))
     keybtn.add(KeyboardButton('Назад'))
     return keybtn
+
+
+def keyboard_reply():
+    button1 = InlineKeyboardButton(
+        text='Все верно!',
+        callback_data='done'
+    )
+    button2 = InlineKeyboardButton(
+        text='Изменить',
+        callback_data='change'
+    )
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[button1], [button2]]
+    )
+    return keyboard
+
+
+def keyboard_reply_tools():
+    button1 = InlineKeyboardButton(
+        text='Все верно!',
+        callback_data='done_tools'
+    )
+    button2 = InlineKeyboardButton(
+        text='Изменить',
+        callback_data='change_tools'
+    )
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[[button1], [button2]]
+    )
+    return keyboard
