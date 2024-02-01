@@ -19,7 +19,7 @@ from module.data_base import table_auto, table_tools, add_id_auto, add_id_tool, 
                                 create_table_admins, create_table_sales, update_table_field
 storage = MemoryStorage()
 
-dotenv = dotenv.load_dotenv("config/.env")
+dotenv = dotenv.load_dotenv("config/.env.example")
 
 
 class Tokens:
